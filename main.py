@@ -1,6 +1,7 @@
-import re
 import os
 import argparse
+from utils import is_match
+from typescript_model import TypescriptModel
 
 parser = argparse.ArgumentParser(description="Script that orders alphabetically a typescript file with types on it")
 parser.add_argument("--file", type=str, help="File containing the typescript's types")
@@ -14,26 +15,21 @@ original_file = open(file_name, "r")
 lines = original_file.readlines()
 output_file = open(output_file_name, "w+")
 
-def write(text):
-    output_file.write(text + os.linesep)
-    output_file.write(os.linesep)
-
-def is_match(line):
-    return re.search(r'type', line)
-
-def get_type_name(line):
-    return re.findall(r'\b(?:(?!export|type|=|{)\w)+\b', line)[0]
-
-count = 0
 list_types = []
 
 for line in lines:
-    count += 1
-    if is_match(line):
-        list_types.append(get_type_name(line))
+    if line != "\n":
+        if is_match(line):
+            list_types.append(TypescriptModel(line))
+        else:
+            list_types[len(list_types) - 1].push_property(line)
 
+list_types.sort(key=lambda x: x.name) # order the list of objects by an attribute
 
-list_types.sort()
+for model in list_types:
+    output_file.write(model.name)
+    for prop in model.properties:
+        output_file.write(prop)
+    output_file.write(os.linesep)
 
-for word in list_types:
-    print(word)
+print(f"Done! {output_file_name} created.")
